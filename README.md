@@ -1,2 +1,2 @@
-# uppw
-Upwork Personalized Proposal Writer
+# fppw
+Freelance Personalized Proposal Writer
