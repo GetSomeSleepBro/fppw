@@ -4,53 +4,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Proposal Generator</title>
+    <title>Freelance Proposal Generator</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f7f6;
+        * {
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
         }
 
         .container {
-            width: 80%;
-            max-width: 600px;
-            margin: 0 auto;
+            width: 90%;
+            max-width: 800px;
             padding: 20px;
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s;
+        }
+
+        .dark-mode .container {
+            background-color: #333;
+            color: #fff;
         }
 
         h1 {
             text-align: center;
             color: #333;
+            margin-bottom: 20px;
+        }
+
+        .dark-mode h1 {
+            color: #fff;
         }
 
         form {
             display: flex;
             flex-direction: column;
+            gap: 15px;
         }
 
         label {
-            margin-top: 10px;
             font-weight: bold;
+            color: #333;
         }
 
-        textarea,
-        select,
-        input {
+        .dark-mode label {
+            color: #fff;
+        }
+
+        input, textarea, select {
             padding: 10px;
-            margin-top: 5px;
-            border-radius: 4px;
+            border-radius: 8px;
             border: 1px solid #ddd;
             font-size: 14px;
         }
 
+        .dark-mode input, .dark-mode textarea, .dark-mode select {
+            background-color: #444;
+            color: #fff;
+            border-color: #555;
+        }
+
         textarea {
             resize: vertical;
-            min-height: 100px;
+            min-height: 120px;
+        }
+
+        select {
+            cursor: pointer;
         }
 
         button {
@@ -58,30 +89,80 @@
             color: white;
             padding: 12px;
             border: none;
-            border-radius: 4px;
+            border-radius: 8px;
             cursor: pointer;
-            margin-top: 20px;
+            font-size: 16px;
+        }
+
+        .dark-mode button {
+            background-color: #0056b3;
         }
 
         button:hover {
             background-color: #0056b3;
         }
 
-        .proposal-output {
-            margin-top: 30px;
-            padding: 10px;
-            border: 1px solid #ddd;
-            background-color: #f9f9f9;
-            border-radius: 4px;
+        .dark-mode button:hover {
+            background-color: #004080;
         }
 
-        .proposal-output h2 {
-            margin-top: 0;
+        .proposal-output {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .dark-mode .proposal-output {
+            background-color: #444;
+            color: #fff;
+            border-color: #555;
         }
 
         .error-message {
             color: red;
             font-size: 14px;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            color: #007BFF;
+        }
+
+        .model-selector {
+            display: none;
+            margin-top: 15px;
+        }
+
+        .dark-mode .loading {
+            color: #fff;
+        }
+
+        .dark-mode .error-message {
+            color: #ff5555;
+        }
+
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 10px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        .dark-mode .theme-toggle {
+            background-color: #444;
         }
     </style>
 </head>
@@ -89,6 +170,7 @@
 <body>
 
     <div class="container">
+        <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
         <h1>Freelance Proposal Generator</h1>
         <form id="proposal-form">
             <label for="proposalData">Proposal Data (Job Description or Details):</label>
@@ -108,12 +190,28 @@
             <textarea id="personalData" required placeholder="Enter your experience and skills"></textarea>
 
             <label for="apiKey">API Key:</label>
-            <input type="text" id="apiKey" placeholder="Enter your OpenAI API key" required>
+            <input type="text" id="apiKey" placeholder="Enter your OpenAI / Gemini / Groq API key" required>
+
+            <label for="apiProvider">Select API Provider:</label>
+            <select id="apiProvider" required>
+                <option value="openai">OpenAI</option>
+                <option value="gemini">Gemini</option>
+                <option value="groq">Groq</option>
+            </select>
+
+            <div id="model-selector" class="model-selector">
+                <label for="model">Select Model:</label>
+                <select id="model" required>
+                    <!-- Models will be dynamically populated -->
+                </select>
+            </div>
 
             <button type="submit">Generate Proposal</button>
         </form>
 
-        <div id="generated-proposal" class="proposal-output" style="display: none;">
+        <div id="loading" class="loading" style="display: none;">Generating Proposal...</div>
+
+        <div id="generated-proposal" class="proposal-output">
             <h2>Generated Proposal:</h2>
             <p id="proposal-text"></p>
         </div>
@@ -122,21 +220,81 @@
     </div>
 
     <script>
+        // Toggle dark mode
+        function toggleTheme() {
+            document.body.classList.toggle("dark-mode");
+            const themeButton = document.querySelector(".theme-toggle");
+            themeButton.textContent = document.body.classList.contains("dark-mode") ? "🌞" : "🌙";
+        }
+
+        // Dynamically fetch models based on provider
+        document.getElementById('apiProvider').addEventListener('change', async function () {
+            const provider = this.value;
+            const modelSelector = document.getElementById('model-selector');
+            const modelSelect = document.getElementById('model');
+            modelSelector.style.display = 'block';
+            modelSelect.innerHTML = ''; // Clear existing options
+
+            try {
+                let models = [];
+
+                // Fetch available models from the respective API providers
+                if (provider === 'openai') {
+                    const response = await fetch('https://api.openai.com/v1/models', {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${document.getElementById('apiKey').value}`
+                        }
+                    });
+                    const data = await response.json();
+                    models = data.data.map(model => model.id); // Get model ids
+                } else if (provider === 'gemini') {
+                    // Replace with the real Gemini API model fetching endpoint
+                    const response = await fetch('https://api.gemini.com/v1/models', {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${document.getElementById('apiKey').value}`
+                        }
+                    });
+                    const data = await response.json();
+                    models = data.models; // Assuming response has a "models" field
+                } else if (provider === 'groq') {
+                    // Replace with the real Groq API model fetching endpoint
+                    const response = await fetch('https://api.groq.com/v1/models', {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${document.getElementById('apiKey').value}`
+                        }
+                    });
+                    const data = await response.json();
+                    models = data.models; // Assuming response has a "models" field
+                }
+
+                // Populate the model selector with available models
+                models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model;
+                    option.textContent = model;
+                    modelSelect.appendChild(option);
+                });
+            } catch (error) {
+                alert('Error fetching models: ' + error.message);
+            }
+        });
+
         // Handle form submission
-        document.getElementById("proposal-form").addEventListener("submit", async function (event) {
+        document.getElementById('proposal-form').addEventListener('submit', async function (event) {
             event.preventDefault();
 
-            // Get user input data
-            const proposalData = document.getElementById("proposalData").value;
-            const platform = document.getElementById("platform").value;
-            const customPrompt = document.getElementById("customPrompt").value;
-            const personalData = document.getElementById("personalData").value;
-            const apiKey = document.getElementById("apiKey").value;
+            const proposalData = document.getElementById('proposalData').value;
+            const platform = document.getElementById('platform').value;
+            const customPrompt = document.getElementById('customPrompt').value;
+            const personalData = document.getElementById('personalData').value;
+            const apiKey = document.getElementById('apiKey').value;
+            const apiProvider = document.getElementById('apiProvider').value;
+            const model = document.getElementById('model').value;
 
-            // Create the prompt to send to OpenAI
             const prompt = `
-                Generate a professional proposal for a freelancing job.
-
                 Platform: ${platform}
                 Proposal Data: ${proposalData}
                 Custom Prompt: ${customPrompt}
@@ -144,19 +302,29 @@
             `;
 
             try {
-                // Show loading state
-                document.getElementById("generated-proposal").style.display = "none";
-                document.getElementById("error-message").style.display = "none";
+                document.getElementById('loading').style.display = 'block';
+                document.getElementById('generated-proposal').style.display = 'none';
+                document.getElementById('error-message').style.display = 'none';
 
-                // Call OpenAI API (or another AI provider) directly from the frontend
-                const response = await fetch('https://api.openai.com/v1/completions', {
+                // Set API endpoint based on provider
+                let apiUrl = '';
+                if (apiProvider === 'openai') {
+                    apiUrl = 'https://api.openai.com/v1/completions';
+                } else if (apiProvider === 'gemini') {
+                    apiUrl = 'https://api.gemini.com/v1/completions';
+                } else if (apiProvider === 'groq') {
+                    apiUrl = 'https://api.groq.com/v1/completions';
+                }
+
+                // Make the API request
+                const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${apiKey}`
+                        'Authorization': `Bearer ${apiKey}`,
                     },
                     body: JSON.stringify({
-                        model: 'text-davinci-003',  // You can use other models like GPT-4 if needed
+                        model: model,
                         prompt: prompt,
                         max_tokens: 300,
                         temperature: 0.7
@@ -166,19 +334,18 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    // Display the generated proposal
-                    document.getElementById("generated-proposal").style.display = "block";
-                    document.getElementById("proposal-text").textContent = data.choices[0].text.trim();
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('generated-proposal').style.display = 'block';
+                    document.getElementById('proposal-text').textContent = data.choices[0].text.trim();
                 } else {
-                    // Display error message if response is not OK
-                    document.getElementById("error-message").style.display = "block";
-                    document.getElementById("error-message").textContent = data.error?.message || "An error occurred while generating the proposal.";
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('error-message').style.display = 'block';
+                    document.getElementById('error-message').textContent = data.error?.message || 'An error occurred while generating the proposal.';
                 }
             } catch (error) {
-                console.error('Error:', error);
-                // Handle any errors that occur during the API request
-                document.getElementById("error-message").style.display = "block";
-                document.getElementById("error-message").textContent = "Failed to generate proposal. Please try again.";
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error-message').style.display = 'block';
+                document.getElementById('error-message').textContent = 'An error occurred. Please try again.';
             }
         });
     </script>
