@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Freelancer Personalized Proposal Writer</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --container-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --input-bg: #2c2c2c;
+            --input-border: #444;
+            --button-bg: #007BFF;
+            --button-hover: #0056b3;
+            --error-color: #ff4d4d;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 800px;
+            padding: 20px;
+            background-color: var(--container-bg);
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+        }
+
+        .menu-icon {
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        h1 {
+            color: var(--text-color);
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        label {
+            font-weight: bold;
+            color: var(--text-color);
+        }
+
+        input,
+        textarea,
+        select {
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--input-border);
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            width: 100%;
+        }
+
+        input::placeholder,
+        textarea::placeholder {
+            color: #888;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        select {
+            cursor: pointer;
+        }
+
+        button {
+            background-color: var(--button-bg);
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: var(--button-hover);
+        }
+
+        .proposal-output {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 8px;
+            color: var(--text-color);
+            display: none;
+        }
+
+        .error-message {
+            color: var(--error-color);
+            font-size: 14px;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--text-color);
+        }
+
+        .side-panel {
+            position: fixed;
+            top: 0;
+            left: -300px;
+            width: 300px;
+            height: 100%;
+            background-color: var(--container-bg);
+            padding: 20px;
+            transition: left 0.3s;
+            overflow-y: auto;
+        }
+
+        .side-panel h2 {
+            color: var(--text-color);
+            margin-bottom: 20px;
+        }
+
+        .side-panel label {
+            display: block;
+            margin-top: 15px;
+        }
+
+        #model-fetch-error {
+            color: var(--error-color);
+            font-size: 12px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Freelancer Personalized Proposal Writer</h1>
+            <div class="menu-icon">☰</div>
+        </div>
+        <form id="proposal-form">
+            <label for="proposalData">Proposal Data (Job Description or Details):</label>
+            <textarea id="proposalData" required placeholder="Enter job description or proposal details"></textarea>
+            <button type="submit">Generate Proposal</button>
+        </form>
+
+        <div id="loading" class="loading" style="display: none;">Generating Proposal...</div>
+        <div id="generated-proposal" class="proposal-output">
+            <h2>Generated Proposal:</h2>
+            <p id="proposal-text"></p>
+        </div>
+        <div id="error-message" class="error-message" style="display: none;"></div>
+    </div>
+
+    <div class="side-panel">
+        <h2>Settings</h2>
+        <label for="platform">Platform:</label>
+        <select id="platform" required>
+            <option value="upwork">Upwork</option>
+            <option value="fiverr">Fiverr</option>
+            <option value="freelancer">Freelancer</option>
+        </select>
+
+        <label for="customPrompt">Custom Prompt (Optional):</label>
+        <textarea id="customPrompt" placeholder="Enter additional instructions or details"></textarea>
+
+        <label for="personalData">Your Personal Data (Experience, Skills, etc.):</label>
+        <textarea id="personalData" required placeholder="Enter your experience and skills"></textarea>
+
+        <label for="apiKey">API Key:</label>
+        <input type="text" id="apiKey" placeholder="Enter your API key">
+
+        <label for="apiProvider">API Provider:</label>
+        <select id="apiProvider">
+            <option value="openai">OpenAI</option>
+            <option value="gemini">Gemini</option>
+            <option value="groq">Groq</option>
+        </select>
+
+        <button id="fetch-models">Fetch Models</button>
+        <div id="model-fetch-error" style="display: none;"></div>
+
+        <label for="model">Model:</label>
+        <select id="model"></select>
+
+        <button id="close-panel" style="margin-top: 20px;">Close</button>
+    </div>
+
+    <script>
+        // Toggle side panel visibility
+        document.querySelector('.menu-icon').addEventListener('click', () => {
+            document.querySelector('.side-panel').style.left = '0';
+        });
+
+        document.getElementById('close-panel').addEventListener('click', () => {
+            document.querySelector('.side-panel').style.left = '-300px';
+        });
+
+        // Fetch models based on provider and API key
+        document.getElementById('fetch-models').addEventListener('click', async function () {
+            const provider = document.getElementById('apiProvider').value;
+            const apiKey = document.getElementById('apiKey').value;
+            const modelSelect = document.getElementById('model');
+            const errorDiv = document.getElementById('model-fetch-error');
+            modelSelect.innerHTML = ''; // Clear existing options
+            errorDiv.style.display = 'none';
+
+            if (!apiKey) {
+                errorDiv.textContent = 'Please enter an API key.';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            let apiUrl = '';
+            let headers = {};
+            let params = '';
+
+            if (provider === 'openai') {
+                apiUrl = 'https://api.openai.com/v1/models';
+                headers = { 'Authorization': `Bearer ${apiKey}` };
+            } else if (provider === 'groq') {
+                apiUrl = 'https://api.groq.com/openai/v1/models';
+                headers = { 'Authorization': `Bearer ${apiKey}` };
+            } else if (provider === 'gemini') {
+                apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models';
+                params = `?key=${apiKey}`;
+            }
+
+            try {
+                this.disabled = true;
+                this.textContent = 'Fetching...';
+
+                const response = await fetch(apiUrl + params, { headers });
+                const data = await response.json();
+
+                let models = [];
+                if (provider === 'openai' || provider === 'groq') {
+                    models = data.data.map(model => model.id);
+                } else if (provider === 'gemini') {
+                    models = data.models.map(model => model.name);
+                }
+
+                models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model;
+                    option.textContent = model;
+                    modelSelect.appendChild(option);
+                });
+            } catch (error) {
+                errorDiv.textContent = 'Failed to fetch models. Please check your API key and try again.';
+                errorDiv.style.display = 'block';
+            } finally {
+                this.disabled = false;
+                this.textContent = 'Fetch Models';
+            }
+        });
+
+        // Clear model dropdown when provider changes
+        document.getElementById('apiProvider').addEventListener('change', function () {
+            document.getElementById('model').innerHTML = '';
+        });
+
+        // Handle form submission for proposal generation
+        document.getElementById('proposal-form').addEventListener('submit', async function (event) {
+            event.preventDefault();
+
+            const proposalData = document.getElementById('proposalData').value;
+            const platform = document.getElementById('platform').value;
+            const customPrompt = document.getElementById('customPrompt').value;
+            const personalData = document.getElementById('personalData').value;
+            const apiKey = document.getElementById('apiKey').value;
+            const apiProvider = document.getElementById('apiProvider').value;
+            const model = document.getElementById('model').value;
+
+            if (!platform || !personalData || !apiKey || !apiProvider || !model) {
+                document.getElementById('error-message').style.display = 'block';
+                document.getElementById('error-message').textContent = 'Please configure all required settings in the side panel.';
+                return;
+            }
+
+            const prompt = `
+                Platform: ${platform}
+                Proposal Data: ${proposalData}
+                Custom Prompt: ${customPrompt || 'None'}
+                Personal Data: ${personalData}
+            `;
+
+            try {
+                document.getElementById('loading').style.display = 'block';
+                document.getElementById('generated-proposal').style.display = 'none';
+                document.getElementById('error-message').style.display = 'none';
+
+                let apiUrl = '';
+                let headers = {};
+                let body = {};
+
+                if (apiProvider === 'openai' || apiProvider === 'groq') {
+                    apiUrl = apiProvider === 'openai' ? 'https://api.openai.com/v1/chat/completions' : 'https://api.groq.com/openai/v1/chat/completions';
+                    headers = {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`,
+                    };
+                    body = {
+                        model: model,
+                        messages: [{ role: "user", content: prompt }],
+                        max_tokens: 300,
+                        temperature: 0.7
+                    };
+                } else if (apiProvider === 'gemini') {
+                    apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+                    headers = { 'Content-Type': 'application/json' };
+                    body = {
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: {
+                            temperature: 0.7,
+                            maxOutputTokens: 300
+                        }
+                    };
+                }
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(body)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    let generatedText = '';
+                    if (apiProvider === 'openai' || apiProvider === 'groq') {
+                        generatedText = data.choices[0].message.content;
+                    } else if (apiProvider === 'gemini') {
+                        generatedText = data.candidates[0].content.parts[0].text;
+                    }
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('generated-proposal').style.display = 'block';
+                    document.getElementById('proposal-text').textContent = generatedText.trim();
+                } else {
+                    throw new Error(data.error?.message || 'API error');
+                }
+            } catch (error) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error-message').style.display = 'block';
+                document.getElementById('error-message').textContent = error.message || 'An error occurred. Please try again.';
+            }
+        });
+    </script>
+</body>
+
+</html>
